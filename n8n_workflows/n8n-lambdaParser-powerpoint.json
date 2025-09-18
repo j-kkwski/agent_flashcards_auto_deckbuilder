@@ -1,0 +1,359 @@
+{
+  "name": "Lambda_Parse_Powerpoint",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "File Please",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File Please",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pptx",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -1040,
+        -64
+      ],
+      "id": "9257bac9-2db4-440e-898c-0421d533f82b",
+      "name": "Upload .pttx using form submission",
+      "webhookId": "94ee5e04-3645-45e8-8ce1-ff2f07ffb022"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "={{$vars.DECKBUILDER_S3_PPTX_BUCKET}}",
+        "fileName": "={{ $json['File Please'].filename }}",
+        "binaryPropertyName": "={{Object.keys($binary)}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -64
+      ],
+      "id": "cc2d42dd-ad4f-4d44-9926-6a0a708d47bf",
+      "name": "Upload a file to S3 Bucket",
+      "credentials": {
+        "aws": {
+          "id": "k295IQu4EuLsFqqg",
+          "name": "AWS_S3_DECK_GETTER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "function": "={{$vars.DECKBUILDER_LAMBDA_PPTX_PARSE}}",
+        "payload": "=    {\"s3_key\": \"{{ $json.Key }}\"}"
+      },
+      "type": "n8n-nodes-base.awsLambda",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        160
+      ],
+      "id": "11856d26-2b31-44cf-aa89-02ce62b99c18",
+      "name": "Parse uploaded pptx using lambda function",
+      "credentials": {
+        "aws": {
+          "id": "M2lnO3zQ0LBdtVFA",
+          "name": "AWS_LAMBDA_INVOKER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Input: data from Lambda (e.g. {{$json[\"body\"]}} if Lambda returns as string)\nconst raw = JSON.parse($json.result.body)\n\n// Extract slide texts\nconst slidesText = raw.slides.map(s => s.text)\nreturn { json: { text: slidesText.join('\\n{SLIDE-END}\\n') } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -64
+      ],
+      "id": "e92ffd6e-6bb8-4aaa-877f-6cd77ab2c08b",
+      "name": "Clear Lambda Output"
+    },
+    {
+      "parameters": {
+        "jsCode": "function cleanTextPreserveNewlines(input) {\n    // Step 1: Remove references like [number]\n    let text = input.replace(/\\[\\d+\\]/g, '');\n\n    // Step 2: Remove unwanted symbols but preserve newlines\n    // Allow Unicode letters (\\p{L}), numbers (\\p{N}), whitespace (\\s), punctuation, and \\n\n    text = text.replace(/[^\\p{L}\\p{N}\\s.,!?'\\n#*()-]/gu, '');\n\n    // Step 3: Collapse multiple spaces (but not newlines)\n    text = text.replace(/[ \\t]+/g, ' ');\n\n    // Step 4: Reduce repeated punctuation\n    text = text.replace(/([.!?])\\1+/g, '$1'); // !!! or ??? → ! or ?\n    text = text.replace(/(\\.{2,})/g, '.');   // ... → .\n\n    // Step 5: Remove standalone numbers at line edges\n    text = text.replace(/\\n\\d+\\b/g, '\\n');\n    text = text.replace(/^\\d+\\b/gm, '');\n\n    // Step 6: Trim spaces at the start/end of each line\n    text = text.split('\\n').map(line => line.trim()).join('\\n');\n\n    return text;\n}\n\nlet item = $input.first();\n\nlet text = cleanTextPreserveNewlines(item.json.text);\nitem.json.text = text;\nreturn [item];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        160
+      ],
+      "id": "25c30668-4397-440e-8c9c-778cc838a053",
+      "name": "Prepare text for AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        128
+      ],
+      "id": "a32a54ec-4e0b-46c1-b09c-38781609612c",
+      "name": "Manuall Trigger for Testing"
+    },
+    {
+      "parameters": {
+        "content": "## Prepare text for AI Agent (Streamline input for token reduction)",
+        "height": 512,
+        "width": 400,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "8a787375-acff-48a4-ad9f-3aaec1438050",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Upload .pptx to S3 and process using Lambda",
+        "height": 512,
+        "width": 400,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -288,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "f29fc038-2980-457b-87b2-ca0d8dffaf9a",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Triggers",
+        "height": 512,
+        "width": 400,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1184,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "8c8ad35e-de00-44df-8618-3332770f7e77",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Split out in case of mulitple binary files",
+        "height": 512,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -736,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "9a3fd459-5d9a-434b-9497-e454a6660f1c",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "$binary",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        32
+      ],
+      "id": "e4a2b6d7-2a2b-4f77-b78b-60fb1fe816eb",
+      "name": "Handle multiple files"
+    },
+    {
+      "parameters": {
+        "content": "## EXAMPLE OUTPUT \n\nHistoria Polski\\nPrezentacja na podstawie dokumentu PDF\\nSLIDE-END\\nJan Matejko, Zaprowadzenie\\nchrzecijastwaPo zakoczeniu wojny Polska znalaza si za tzw. elazn kurtyn , a wadz w niej przejli komunici . W\\nr. pastwo przemianowano na Polsk Rzeczpospolit Ludow . Do 1989 panowa w niej system\\npartyjny , w ktrym przewodni rol penia Polska Zjednoczona Partia Robotnicza. Oprcz niej\\nwystpoway jeszcze ugrupowania satelickie ZSL i SD. Upada ona ostatecznie w efekcie procesu\\nokrelanego mianem Jesieni Narodw . Wybory parlamentarne w 1989 r. zapocztkoway procesy\\ndemokratyzacji i reform gospodarczyc h",
+        "height": 512,
+        "width": 400,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        608,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "dc7da7d4-a102-4a9a-b173-7b092302d095",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {
+    "Parse uploaded pptx using lambda function": [
+      {
+        "json": {
+          "result": {
+            "statusCode": 200,
+            "body": "{\"slides\": [{\"slide_number\": 1, \"text\": \"Historia Polski\\nPrezentacja na podstawie dokumentu PDF\"}, {\"slide_number\": 2, \"text\": \"Jan Matejko, Zaprowadzenie\\nchrze\\u015bcija\\u0144stwaPo zako\\u0144czeniu wojny Polska znalaz\\u0142a si\\u0119 za tzw. \\u017celazn\\u0105 kurtyn\\u0105 , a w\\u0142adz\\u0119 w niej przej\\u0119li komuni\\u015bci . W\\n1952 r. pa\\u0144stwo przemianowano na Polsk\\u0105 Rzeczpospolit\\u0105 Ludow\\u0105 . Do 1989 panowa\\u0142 w niej system\\npartyjny , w kt\\u00f3rym przewodni\\u0105 rol\\u0119 pe\\u0142ni\\u0142a Polska Zjednoczona Partia Robotnicza. Opr\\u00f3cz niej\\nwyst\\u0119powa\\u0142y jeszcze ugrupowania satelickie \\u2013 ZSL i SD. Upad\\u0142a ona ostatecznie w efekcie procesu\\nokre\\u015blanego mianem Jesieni Narod\\u00f3w . Wybory parlamentarne w 1989 r. zapocz\\u0105tkowa\\u0142y procesy\\ndemokratyzacji i reform gospodarczyc h, kt\\u00f3re umo\\u017cliwi\\u0142y III Rzeczypospolitej  wst\\u0105pienie do NATO\\n(1999), a nast\\u0119pnie do Unii Europejskiej  (2004).\\nPierwsze \\u015blady obecno\\u015bci cz\\u0142owieka z gatunku Homo Neanderthalensis  na ziemiach polskich datowane s\\u0105\\nna 200 tys. lat p.n.e.[9] Przej\\u015bcie z kultury paleolitycznej do neolitycznej nast\\u0105pi\\u0142o na ziemiach polskich\\nw mi\\u0119dzy 8000 a 4500 r. p.n.e.[10] Okres neolitu jest epok\\u0105, w kt\\u00f3rej ostatecznie utrwali\\u0142a si\\u0119 przewaga\\nhodowli i rolnictwa nad zbieractwem i \\u0142owiectwem. Lata 4500\\u20132500 p.n.e. to pojawienie si\\u0119 z obszar\\u00f3w\\nnaddunajskich kultur ceramicznych \\u2013 wst\\u0119gowej rytej i wst\\u0119gowej k\\u0142utej, drugi okres, trwaj\\u0105cy do 2000 r.\\np.n.e., to ceramiki malowane i pozbawi one malowanej ornamentacji, ale przede wszystkim pojawi\\u0142a si\\u0119\\nw\\u00f3wczas kultura puchar\\u00f3w lejkowatych[11]. W trzecim okresie (do 1800 r. p.n.e.) pojawia\\u0142o si\\u0119 na\"}, {\"slide_number\": 3, \"text\": \"Grody w okresie Mieszka I\\nPolska w czasach ChrobregoMieszko nigdy nie zosta\\u0142 kr\\u00f3lem, do ko\\u0144ca \\u017cycia\\nby\\u0142 ksi\\u0119ciem. Pod koniec jego panowania\\npa\\u0144stwo obejmowa\\u0142o Wielkopolsk\\u0119, Mazowsze,\\ncz\\u0119\\u015b\\u0107 Pomorza z Gda\\u0144skiem, \\u015al\\u0105sk i\\nprawdopodobnie Ma\\u0142opolsk\\u0119[17]. Zar\\u00f3wno on,\\njak i jego nast\\u0119pcy prowadzili walki z pa\\u0144stwami\\nCesarstwa Niemieckiego  oraz Czechami  i Rusi\\u0105\\nKijowsk\\u0105 , a tak\\u017ce z plemionami s\\u0142owia\\u0144skimi\\nosiad\\u0142ymi mi\\u0119dzy Odr\\u0105 a \\u0141ab\\u0105 .\\nNajwi\\u0119kszy zasi\\u0119g terytorialny pa\\u0144stwo\\nosi\\u0105gn\\u0119\\u0142o za czas\\u00f3w Boles\\u0142awa I Chrobrego , by\\u0142\\non synem pierwszego w\\u0142adcy Polski. Chrobry\\nzaj\\u0105\\u0142 Milsko , \\u0141u\\u017cyce , Morawy , S\\u0142owacj\\u0119  (a\\nprzej\\u015bciowo tak\\u017ce Czechy) i przywr\\u00f3ci\\u0142 Polsce\"}, {\"slide_number\": 4, \"text\": \"Klasztor benedykty\\u0144ski w Ty\\u0144culudno\\u015bci wiejskiej.\\nstarych. Najwa\\u017cniejszymi grodami, spo\\u015br\\u00f3d ok. 60\\u201380, by\\u0142y Gniezno , Pozna\\u0144 , Krak\\u00f3w , Kruszwica ,\\nOstr\\u00f3w Lednicki , P\\u0142ock , Wroc\\u0142aw , Opole , G\\u0142og\\u00f3w  i Niemcza . Grody otoczone by\\u0142y podgrodziami , w\\nkt\\u00f3rych rozwija\\u0142o si\\u0119 rzemios\\u0142o i handel. W rejonie grod\\u00f3w rozlokowane by\\u0142y osady zasiedlone ludno\\u015bci\\u0105\\ns\\u0142u\\u017cebn\\u0105[25].\\nKsi\\u0105\\u017c\\u0119 by\\u0142 w\\u0142a\\u015bcicielem ca\\u0142ej ziemi w kraju, cz\\u0119\\u015b\\u0107 praw m\\u00f3g\\u0142 odst\\u0105pi\\u0107 w u\\u017cytkowanie poszczeg\\u00f3lnym\\nosobom czy instytucjom. Prawo ksi\\u0105\\u017c\\u0119ce  (ius ducale ) oddawa\\u0142o w r\\u0119ce w\\u0142adcy szereg przywilej\\u00f3w , od\\nmonopoli na korzystanie z las\\u00f3w czy kopalin (regale ) po szereg powinno\\u015bci i us\\u0142ug \\u015bwiadczonych przez\\ngrupy lub poszczeg\\u00f3lne osoby . Ludno\\u015b\\u0107 podzielona by\\u0142a na szereg kategorii reguluj\\u0105cych charakter i\\nwysoko\\u015b\\u0107 \\u015bwiadcze\\u0144 na rzecz w\\u0142adcy[26]. Nie jest jasne kiedy ukszta\\u0142towa\\u0142o si\\u0119 prawo ksi\\u0105\\u017c\\u0119ce,\\nnajprawdopodobniej nast\\u0105pi\\u0142o to w ko\\u0144cu XII wieku, a wi\\u0119c niebezpieczne jest odnoszenie go do okresu\\nprzed \\u015bmierci\\u0105 Krzywoustego, jakkolwiek pewne cechy na pewno istnia\\u0142y ju\\u017c w\\u00f3wczas[27].\\nPo kryzysie monarchii z lat 30. XI wieku rozpad\\u0142 si\\u0119 system wojskowy oparty na dru\\u017cynie, a zacz\\u0105\\u0142\\nkszta\\u0142towa\\u0107 si\\u0119 stan rycerski, ju\\u017c nie utrzymywany przez ksi\\u0119cia, a nagradzany nadaniami. Z czasem\\nukszta\\u0142towa\\u0142o si\\u0119 odr\\u0119bne prawo rycerskie  (ius militar e) reguluj\\u0105ce powinno\\u015bci i przywileje\"}]}"
+          }
+        }
+      }
+    ],
+    "Upload a file to S3 Bucket": [
+      {
+        "json": {
+          "$": {
+            "xmlns": "http://s3.amazonaws.com/doc/2006-03-01/"
+          },
+          "Location": "https://n8n-ankideckbuilder-pptx-bucket.s3.eu-north-1.amazonaws.com/Historia_Polski_Prezentacja.pptx",
+          "Bucket": "n8n-ankideckbuilder-pptx-bucket",
+          "Key": "Historia_Polski_Prezentacja.pptx",
+          "ETag": "\"d1007068a03f6c43d695780b3a53e901-1\"",
+          "ChecksumCRC64NVME": "yNOF/wd7Zmk=",
+          "ChecksumType": "FULL_OBJECT"
+        }
+      }
+    ],
+    "Handle multiple files": [
+      {
+        "json": {
+          "File Please": {
+            "filename": "Historia_Polski_Prezentacja.pptx",
+            "mimetype": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "size": 33028
+          },
+          "submittedAt": "2025-09-17T14:37:50.022+02:00",
+          "formMode": "test"
+        },
+        "binary": {
+          "File_Please": {
+            "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "fileExtension": "pptx",
+            "data": "filesystem-v2",
+            "fileName": "Historia_Polski_Prezentacja.pptx",
+            "id": "filesystem-v2:workflows/ZEo1V6C5HFVlKn4f/executions/temp/binary_data/eb5113f9-e776-4b8f-8b5b-f9ba9ab4c9b2",
+            "fileSize": "33 kB"
+          }
+        }
+      }
+    ],
+    "Upload .pttx using form submission": [
+      {
+        "json": {
+          "File Please": {
+            "filename": "Historia_Polski_Prezentacja.pptx",
+            "mimetype": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "size": 33028
+          },
+          "submittedAt": "2025-09-17T14:37:50.022+02:00",
+          "formMode": "test"
+        },
+        "binary": {
+          "File_Please": {
+            "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "fileExtension": "pptx",
+            "data": "filesystem-v2",
+            "fileName": "Historia_Polski_Prezentacja.pptx",
+            "id": "filesystem-v2:workflows/ZEo1V6C5HFVlKn4f/executions/temp/binary_data/eb5113f9-e776-4b8f-8b5b-f9ba9ab4c9b2",
+            "fileSize": "33 kB"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Upload .pttx using form submission": {
+      "main": [
+        [
+          {
+            "node": "Handle multiple files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file to S3 Bucket": {
+      "main": [
+        [
+          {
+            "node": "Parse uploaded pptx using lambda function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse uploaded pptx using lambda function": {
+      "main": [
+        [
+          {
+            "node": "Clear Lambda Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear Lambda Output": {
+      "main": [
+        [
+          {
+            "node": "Prepare text for AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manuall Trigger for Testing": {
+      "main": [
+        [
+          {
+            "node": "Parse uploaded pptx using lambda function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle multiple files": {
+      "main": [
+        [
+          {
+            "node": "Upload a file to S3 Bucket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "726e78db-1012-4b1c-b533-a988e9b493dc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b16d98c47200c2686a4b29ecfa84815bd9725f037a0a4b2c8514bd0f198fab9"
+  },
+  "id": "ZEo1V6C5HFVlKn4f",
+  "tags": []
+}
