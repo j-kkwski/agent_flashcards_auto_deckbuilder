@@ -1,0 +1,428 @@
+{
+  "name": "LambdaDeckCreator",
+  "nodes": [
+    {
+      "parameters": {
+        "function": "={{$vars.DECKBUILDER_LAMBDA_GENERATE_DECK}}",
+        "qualifier": "=$LATEST",
+        "payload": "={{ JSON.stringify($json.output) }}"
+      },
+      "type": "n8n-nodes-base.awsLambda",
+      "typeVersion": 1,
+      "position": [
+        752,
+        -80
+      ],
+      "id": "c5135bab-5e2a-493e-8142-70ad59e24d2d",
+      "name": "AWS Lambda",
+      "credentials": {
+        "aws": {
+          "id": "caN3ivlKANamOf18",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Upload File",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "FILE",
+              "fieldType": "file",
+              "multipleFiles": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -768,
+        -80
+      ],
+      "id": "366af2f6-3601-4d3b-be81-f37292a2168f",
+      "name": "On form submission",
+      "webhookId": "827f1429-396f-418b-a65c-6b5456788ea2"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{\"FILE\"}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -80
+      ],
+      "id": "e8cd4aaf-990a-4627-9f97-2c5d03fa914d",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=**TASK**\nYou will be given a block of text splitted into sections. Analyze each sections, extract the **important concepts** form each section, and create a flashcards deck. Make sure that the flashcard cover each section. Don't limit yourself on flashcard amount. It's better to generate more flashcards to make sure **each concept in file is accurately exhausted and covered**.\n\n**Text Input:**  \n\"\"\"  \n{{ $json.text }}\n\"\"\"  \n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=#Role\nYou are an AI assistant that creates flashcard decks from text. Your role is to read the provided input, identify the most important concepts, definitions, processes, and relationships, and then generate clear and concise flashcards. Create flashcards only based on the content of the file. Do not create flashcard about the structure or nature of the input file. \n\n#Rules to follow\n- Create flashcards only based on the content of the file\n- Do not create flashcard about the structure or nature of the input file.\n- Don't limit yourself on flashcard amount. It's better to generate more flashcards to make sure each concept in file is accurately exhausted.\n- Avoid flashards about broad concepts and ideas.\n- When asking about events always include the begining date of the event the end date of the event. The causes for event to happen and the main outcomes of the event. \n- Focus only on **key facts, definitions, explanations, and cause–effect relationships**.  \n- Do not include trivial details, filler words, or unnecessary complexity.  \n- Each flashcard must contain **one clear question** and **one concise answer**.  \n- Return only the json as specified in Structured Output Parser \n\n\n#Output Format\n- Ensure the JSON you output is **valid** and strictly follows strucutre defined in the Structured Output Parser\n\n{\n  \"body\": \"{ \\\"deck_name\\\": \\\"<Insert Title>\\\", \\\"cards\\\": [ { \\\"question\\\": \\\"<Question 1>\\\", \\\"answer\\\": \\\"<Answer 1>\\\" }, { \\\"question\\\": \\\"<Question 2>\\\", \\\"answer\\\": \\\"<Answer 2>\\\" } ] }\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        -80
+      ],
+      "id": "1b704f74-68d2-4bb8-8612-736812df54fb",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        368,
+        112
+      ],
+      "id": "c1c1f9ce-8cf1-4573-ada7-781a8b42ff6f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jbOmTm5gPnFPeNGd",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"body\": \"{ \\\"deck_name\\\": \\\"<Insert Title>\\\", \\\"cards\\\": [ { \\\"question\\\": \\\"<Question 1>\\\", \\\"answer\\\": \\\"<Answer 1>\\\" }, { \\\"question\\\": \\\"<Question 2>\\\", \\\"answer\\\": \\\"<Answer 2>\\\" } ] }\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        112
+      ],
+      "id": "2a66e9ea-cd8c-4df0-b331-ac0be5786327",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# TASK:\nYou'll be provided with text. Your job is to identify and split the text into multiple sections that will corespond to each main idea in the text and return themm as a clear block of markdown text as described in OUTPUT FORMAT.  If the input text contains any chronology make sure to relect in in sections split.\n\n#OUTPUT FORMAT\n\n## **section1 title**\nsection1 content\n----------------\n## **section2 title**\nsection2 content\n----------------\n## **section3 title**\nsection3 content\n----------------\n## **section4 title**\nsection4 content\n\n{{ $json.text }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -304,
+        -80
+      ],
+      "id": "747818e4-50e5-47fb-9925-40b827996d70",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        80
+      ],
+      "id": "0fda8546-8c41-4049-8872-53d5a2043db6",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jbOmTm5gPnFPeNGd",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function cleanTextPreserveNewlines(input) {\n    // Step 1: Remove references like [number]\n    let text = input.replace(/\\[\\d+\\]/g, '');\n\n    // Step 2: Remove unwanted symbols but preserve newlines\n    // Keep letters, numbers, spaces, punctuation, and \\n\n  text = text.replace(/[^\\w\\s.,!?'\\n#*()-]/g, '');\n\n    // Step 3: Collapse multiple spaces (but not newlines)\n    text = text.replace(/[ \\t]+/g, ' ');\n\n    // Step 4: Reduce repeated punctuation\n    text = text.replace(/([.!?])\\1+/g, '$1'); // !!! or ??? → ! or ?\n    text = text.replace(/(\\.{2,})/g, '.');     // ... → .\n\n    // Step 5: Trim spaces at the start/end of each line\n    text = text.split('\\n').map(line => line.trim()).join('\\n');\n\n    return text;\n}\n\nlet item = $input.first();\nlet text = cleanTextPreserveNewlines(item.json.text);\nitem.json.text = text;\nreturn [item];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -80
+      ],
+      "id": "cd949daa-47e9-405a-ae02-cc68e67520a3",
+      "name": "CLEAR MARKDOWN TEXT"
+    },
+    {
+      "parameters": {
+        "content": "## AI to analyse text, split it into logical sections. Adhere to chronology.",
+        "height": 512,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -368,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "8701edee-f271-4c01-aa2f-7095750db0a6",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Triggers",
+        "height": 512,
+        "width": 256,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -832,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "12b180a7-d1cb-4da7-968e-1dd33c990ef3",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Extract Text From PDF\n",
+        "height": 512,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -624,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "2068e576-35fd-4604-954b-849b0215e085",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Generate flashcard content\nDynamically decide what's important from each section of text. Prepare output for lambda ankideck generator. ",
+        "height": 512,
+        "width": 400,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        288,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "9f3a1f96-9d4d-4426-82ae-1a6af1821a5d",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Clear the AI outcome",
+        "height": 512,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "b3b47fa0-56c6-432f-913a-83633151925a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Generate AnkiDeck",
+        "height": 512,
+        "width": 256,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        672,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "a0cb97eb-a095-41ed-9103-221d750c0726",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {
+    "Extract from File": [
+      {
+        "json": {
+          "numpages": 4,
+          "numrender": 4,
+          "info": {
+            "PDFFormatVersion": "1.7",
+            "Language": null,
+            "EncryptFilterName": null,
+            "IsLinearized": false,
+            "IsAcroFormPresent": false,
+            "IsXFAPresent": false,
+            "IsCollectionPresent": false,
+            "IsSignaturesPresent": false,
+            "CreationDate": "D:20250912140746",
+            "Creator": "PDFium",
+            "Producer": "PDFium"
+          },
+          "text": "Historia Polski\nSeria artykułów szczegółowych poświęconych historii Polski podzielona została na dwie części: hasła\nchronologiczne i monografie. Pierwsze podejmują kwestie historii politycznej Polski, w tym przede\nwszystkim polityki zewnętrznej i ważnych przemian wewnętrznych w kolejnych przedziałach czasowych.\nMonografie opisują natomiast poszczególne formy państwa polskiego od Polski pierwszych Piastów po\nIII Rzeczpospolitą – jego społeczeństwo, władzę, ustrój, gospodarkę, wojskowość itd.\nHistoria Polski – obejmuje dzieje państwa i narodu polskiego od X do XXI wieku.\nDzieje Polski rozpoczynają się wraz z panowaniem pierwszego historycznego władcy, Mieszka I, który\nrządził od około 960 roku, a w 966 roku przyjął chrzest. Jednak wczesnopiastowskie państwo istniało już\nwówczas od co najmniej kilkudziesięciu lat, o czym świadczy budowa wielu grodów jeszcze przed\npanowaniem Mieszka\n[1][2][3][4]\n. Syn Mieszka, Bolesław Chrobry, w 1025 roku został koronowany na\npierwszego króla Polski. Do 1138 roku Polska jako monarchia patrymonialna rządzona była przez\nwładców z dynastii Piastów, którzy nie licząc wydzielanych juniorom dzielnic i przejściowych okresów\npodziału, zachowywali zwierzchność nad całym jej terytorium.\nW efekcie tzw. ustawy sukcesyjnej księcia Bolesława Krzywoustego ziemie polskie uległy na 150 lat\npogłębiającemu się rozbiciu dzielnicowemu. Próby ponownego zjednoczenia zaczęto podejmować pod\nkoniec XIII w., a ostatecznie zostały one uwieńczone koronacją Władysława Łokietka w 1320 roku.\nDynastia Piastów wygasła po śmierci jego syna, Kazimierza Wielkiego w 1370, który nie pozostawił\nlegalnego następcy. Rządy w Polsce przejęli Andegawenowie (Ludwik Węgierski i Jadwiga), a następnie\n– poprzez ślub Jadwigi z wielkim księciem litewskim Jagiełłą – królowie z dynastii Jagiellonów.\nW 1569 r. Korona Królestwa Polskiego weszła w stały związek z Wielkim Księstwem Litewskim. Na\nmocy unii zawartej w Lublinie powstała Rzeczpospolita Obojga Narodów, którą od 1573 r. rządzili\nwładcy powoływani drogą wolnej elekcji. Państwo to było jednym z największych terytorialnie\norganizmów politycznych Europy. Po pokoju z Rosją zawartym w Polanowie w 1634 r. osiągnęło\npowierzchnię 990 tys. km². W tym okresie w Rzeczypospolitej wykształcił się swoisty system polityczny,\noparty na dominacji liczniejszej niż w innych krajach europejskich szlachty i systemie rządów\nparlamentarnych. Złoty wiek państwa przypadł na okres rządów ostatnich Jagiellonów. Ostatecznie\nzakończył się on wraz z wojnami połowy XVII wieku.\nW kolejnym stuleciu pogrążona w anarchii Rzeczpospolita zaczęła popadać w silną zależność od Rosji, a\nnastępnie zniknęła z mapy Europy w rezultacie trzech rozbiorów dokonanych przez Imperium Rosyjskie,\nKrólestwo Prus oraz Cesarstwo Austrii w latach: 1772, 1793 i 1795\n[5][6][7][8]\n. Samodzielne państwo\npolskie nie istniało aż do XX wieku, choć okresowo pojawiały się jego szczątkowe formy, takie jak\nKsięstwo Warszawskie, Królestwo Polskie czy Wielkie Księstwo Poznańskie. Pełne odrodzenie Polski\nnastąpiło dopiero po I wojnie światowej, kiedy w sytuacji upadku mocarstw rozbiorowych powstała II\nRzeczpospolita. Istniała ona do 1939 r., czyli do początku II wojny światowej. We wrześniu 1939 ziemie\npolskie zajęte zostały przez III Rzeszę i ZSRR. Dopiero od 1944 r. rozpoczęło się ich stopniowe\nprzejmowanie przez oddziały sowieckie i utworzonego u ich boku Ludowego Wojska Polskiego.\n\nJan Matejko, Zaprowadzenie\nchrześcijaństwa\nPo zakończeniu wojny Polska znalazła się za tzw. żelazną kurtyną, a władzę w niej przejęli komuniści. W\n1952 r. państwo przemianowano na Polską Rzeczpospolitą Ludową. Do 1989 panował w niej system\npartyjny, w którym przewodnią rolę pełniła Polska Zjednoczona Partia Robotnicza. Oprócz niej\nwystępowały jeszcze ugrupowania satelickie – ZSL i SD. Upadła ona ostatecznie w efekcie procesu\nokreślanego mianem Jesieni Narodów. Wybory parlamentarne w 1989 r. zapoczątkowały procesy\ndemokratyzacji i reform gospodarczych, które umożliwiły III Rzeczypospolitej wstąpienie do NATO\n(1999), a następnie do Unii Europejskiej (2004).\nPierwsze ślady obecności człowieka z gatunku Homo Neanderthalensis na ziemiach polskich datowane są\nna 200 tys. lat p.n.e.\n[9] \nPrzejście z kultury paleolitycznej do neolitycznej nastąpiło na ziemiach polskich\nw między 8000 a 4500 r. p.n.e.\n[10] \nOkres neolitu jest epoką, w której ostatecznie utrwaliła się przewaga\nhodowli i rolnictwa nad zbieractwem i łowiectwem. Lata 4500–2500 p.n.e. to pojawienie się z obszarów\nnaddunajskich kultur ceramicznych – wstęgowej rytej i wstęgowej kłutej, drugi okres, trwający do 2000 r.\np.n.e., to ceramiki malowane i pozbawione malowanej ornamentacji, ale przede wszystkim pojawiła się\nwówczas kultura pucharów lejkowatych\n[11]\n. W trzecim okresie (do 1800 r. p.n.e.) pojawiało się na\nziemiach polskich kilka kultur: kultura ceramiki wstęgowej, kultura amfor kulistych oraz kultura\nceramiki sznurowej, z którą wiąże się początki hodowli konia\n[12]\n.\nPoczątek epoki brązu na terenach dzisiejszej Polski datuje się na lata 1800–700 p.n.e., a wiąże się ją z\nkulturą unietycką, obok której istniały prymitywniejsze kultury iwieńska i mierzanowicka\n[12]\n. Około\n1600 r. p.n.e. kultura unietycka przekształciła się w pasterską kulturę przedłużycką, na którą ok. 300 lat\npóźniej nałożyła się wysoko rozwinięta kultura łużycka, z którą wiąże się umiejętność wytopu żelaza\n[12]\n.\nOkoło IX w. na ziemiach polskich zaczęły się tworzyć silne\norganizmy polityczne. Do największego znaczenia doszły\ndwa – państwo Wiślan, wokół Krakowa i państwo Polan,\nwokół Gniezna i Poznania. Państwo Wiślan znalazło się\nprzypuszczalnie w drugiej połowie wieku pod panowaniem\nwielkomorawskim, a potem, między 936 a 945 rokiem,\nczeskim\n[13][14]\n. Z panowaniem wielkomorawskim wiązać\nmożna wspominany w źródłach chrzest księcia Wiślan\n[15]\n.\nOkoło 930–940 roku na północy władcy Polan poczęli\nprężnie przyłączać okoliczne ziemie, do ok. 960 roku\npanowali już nad całą Wielkopolską\n[16]\n. Pierwszy historyczny\nwładca z tej dynastii Mieszko I w 966 r. przyjął chrzest.\nPrehistoria ziem polskich\nHistoria Polski\nPaństwo pierwszych Piastów (do 1138)\nHistoria\n\nGrody w okresie Mieszka I\nPolska w czasach Chrobrego\nMieszko nigdy nie został królem, do końca życia\nbył księciem. Pod koniec jego panowania\npaństwo obejmowało Wielkopolskę, Mazowsze,\nczęść Pomorza z Gdańskiem, Śląsk i\nprawdopodobnie Małopolskę\n[17]\n. Zarówno on,\njak i jego następcy prowadzili walki z państwami\nCesarstwa Niemieckiego oraz Czechami i Rusią\nKijowską, a także z plemionami słowiańskimi\nosiadłymi między Odrą a Łabą.\nNajwiększy zasięg terytorialny państwo\nosiągnęło za czasów Bolesława I Chrobrego, był\non synem pierwszego władcy Polski. Chrobry\nzajął Milsko, Łużyce, Morawy, Słowację (a\nprzejściowo także Czechy) i przywrócił Polsce\nGrody Czerwieńskie.\nBolesławowi Chrobremu udało się w 1000 roku\nustanowić w Polsce niezależną metropolię\nkościelną, ze stolicą w Gnieźnie\n[18]\n,\ndomniemany akt koronacyjny dokonany w tym\nroku przez Ottona III, potwierdzony został w\n1025 roku sakrą papieską\n[19]\n. W tym roku\nChrobry został koronowany, wkrótce jednak\nzmarł. Upadek państwa pierwszych Piastów\nnastąpił w 1031 za panowania syna Bolesława\nMieszka II, utracone zostały niemal wszystkie\nterytoria przyłączone przez Bolesława, a dynastia\nutraciła insygnia koronacyjne. Najazd księcia\nczeskiego Brzetysława z 1038 roku i powstanie\nludowe dopełniły dzieła zniszczenia.\nPanowanie Kazimierza Odnowiciela rozpoczęło\nokres odbudowy państwa, zwieńczony koronacją\nw 1076 r. jego syna Bolesława Śmiałego.\nBolesław koronację zawdzięczał wspieraniu papieża Grzegorza VII w jego sporze z cesarzem\n[20]\n.\nKonflikt z biskupem Stanisławem ze Szczepanowa, a prawdopodobnie z szerszą grupą\nmożnowładców\n[21] \ndoprowadził do wygnania króla i sięgnięcia po władzę przez jego, uległego\ncesarstwu, brata Władysława Hermana. Po długiej rywalizacji między jego synami Zbigniewem i\nBolesławem, rządy objął ten ostatni, po swej śmierci podzielił on państwo między synów, nadając\nnajstarszemu tytuł seniora\n[22]\n. Rok 1138 przyjmuje się za początek rozbicia dzielnicowego.\nPodstawą władzy książąt polskich była drużyna książęca – grupa wojów otaczająca księcia i będąca na\njego utrzymaniu. Prawdopodobnie o jej sile stanowili wojownicy normańscy\n[23]\n. Książę i jego otoczenie\nczerpało dochody z wypraw wojennych, skąd sprowadzano niewolników, oraz ze świadczeń ściąganych z\nGospodarka i społeczeństwo\n\nKlasztor benedyktyński w Tyńcu\nludności wiejskiej. Ośrodkami władzy były grody\n[24]\n. Po podboju wznoszono nowe grodziska na miejscu\nstarych. Najważniejszymi grodami, spośród ok. 60–80, były Gniezno, Poznań, Kraków, Kruszwica,\nOstrów Lednicki, Płock, Wrocław, Opole, Głogów i Niemcza. Grody otoczone były podgrodziami, w\nktórych rozwijało się rzemiosło i handel. W rejonie grodów rozlokowane były osady zasiedlone ludnością\nsłużebną\n[25]\n.\nKsiążę był właścicielem całej ziemi w kraju, część praw mógł odstąpić w użytkowanie poszczególnym\nosobom czy instytucjom. Prawo książęce (ius ducale) oddawało w ręce władcy szereg przywilejów, od\nmonopoli na korzystanie z lasów czy kopalin (regale) po szereg powinności i usług świadczonych przez\ngrupy lub poszczególne osoby. Ludność podzielona była na szereg kategorii regulujących charakter i\nwysokość świadczeń na rzecz władcy\n[26]\n. Nie jest jasne kiedy ukształtowało się prawo książęce,\nnajprawdopodobniej nastąpiło to w końcu XII wieku, a więc niebezpieczne jest odnoszenie go do okresu\nprzed śmiercią Krzywoustego, jakkolwiek pewne cechy na pewno istniały już wówczas\n[27]\n.\nPo kryzysie monarchii z lat 30. XI wieku rozpadł się system wojskowy oparty na drużynie, a zaczął\nkształtować się stan rycerski, już nie utrzymywany przez księcia, a nagradzany nadaniami. Z czasem\nukształtowało się odrębne prawo rycerskie (ius militare) regulujące powinności i przywileje\nwojowników, jak w przypadku innych grup\n[28]\n. Pod koniec okresu co potężniejsi możnowładcy również\ndorobili się własnej klienteli rycerskiej, którą, naśladując księcia, nagradzali nadaniami. Swoich rycerzy\nmieli wojewodowie Sieciech i Skarbimir oraz arcybiskup\n[28]\n. Jednak do obrony kraju nadal zobowiązana\nbyła cała ludność, a wszystkie grupy miały charakter otwarty.\nW toku dziejów dużą władzę w państwie zdobył sobie wojewoda (palatinus), który pierwotnie zarządzał\ndworem władcy, z czasem stał się drugą osobą w państwie, a czasem potrafił podporządkować sobie\nksięcia, jak to było w przypadku Sieciecha\n[29]\n. Na czele prowincji stali naczelnicy (principes terrae),\nszacuje się, że było ich około sześciu, często zostawali nimi członkowie rodu książęcego. Urząd\nnaczelników przestał istnieć w okresie rozbicia kraju na dzielnice. Okręgiem grodowym zarządzał żupan\n(comes), sprawowali władzę sądową, wojskową i skarbową. Tereny przygraniczne otrzymywały status\nmarchii, znane są marchie głogowska i gdańska\n[30]\n.\nPoczątki kultury pisma w Polsce wiąże się z przyjęciem\nchrześcijaństwa. Pierwszym zabytkiem tego typu jest\ndokument Dagome iudex, którym Mieszko I oddawał swe\npaństwo w opiekę Stolicy Piotrowej. Z obecnością Brunona z\nKwerfurtu związane są pierwsze dzieła literackie: Drugi\nżywot i Pasja św. Wojciecha oraz Żywot Pięciu Braci\nMęczenników\n[31]\n. W tym samym czasie powstają także\npierwsze roczniki spisywane na ziemiach polskich i\ndotyczące Polski, najbogatszy z nich to Rocznik kapitulny\nkrakowski dawny.\nBezpośrednio po chrzcie Mieszka I powstało w Poznaniu biskupstwo misyjne, na czele którego stanął\nJordan. Wraz z utworzeniem w 1000 roku metropolii gnieźnieńskiej powstały stałe sufraganie w\nKołobrzegu, Wrocławiu i Krakowie. Poznań został podporządkowany Gnieznu dopiero ok. 1012 r.,\nproblemem było także objęcie jurysdykcją Śląska i Małopolski, które były podporządkowane\nKultura i życie religijne",
+          "version": "5.3.31"
+        },
+        "binary": {}
+      }
+    ],
+    "CLEAR MARKDOWN TEXT": [
+      {
+        "json": {
+          "text": "## **Wprowadzenie do Historii Polski**\nSeria artykuw szczegowych powiconych historii Polski podzielona zostaa na dwie czci hasa chronologiczne i monografie. Pierwsze podejmuj kwestie historii politycznej Polski, w tym przede wszystkim polityki zewntrznej i wanych przemian wewntrznych w kolejnych przedziaach czasowych. Monografie opisuj natomiast poszczeglne formy pastwa polskiego od Polski pierwszych Piastw po III Rzeczpospolit jego spoeczestwo, wadz, ustrj, gospodark, wojskowo itd.\n----------------\n## **Pocztki pastwa i dynastia Piastw (ok. 9601370)**\nHistoria Polski obejmuje dzieje pastwa i narodu polskiego od X do XXI wieku. Dzieje Polski rozpoczynaj si wraz z panowaniem pierwszego historycznego wadcy, Mieszka I, ktry rzdzi od okoo 960 roku, a w 966 roku przyj chrzest. Jednak wczesnopiastowskie pastwo istniao ju wwczas od co najmniej kilkudziesiciu lat, o czym wiadczy budowa wielu grodw jeszcze przed panowaniem Mieszka. Syn Mieszka, Bolesaw Chrobry, w 1025 roku zosta koronowany na pierwszego krla Polski. Do 1138 roku Polska jako monarchia patrymonialna rzdzona bya przez wadcw z dynastii Piastw, ktrzy nie liczc wydzielanych juniorom dzielnic i przejciowych okresw podziau, zachowywali zwierzchno nad caym jej terytorium. W efekcie tzw. ustawy sukcesyjnej ksicia Bolesawa Krzywoustego ziemie polskie ulegy na 150 lat pogbiajcemu si rozbiciu dzielnicowemu. Prby ponownego zjednoczenia zaczto podejmowa pod koniec XIII w., a ostatecznie zostay one uwieczone koronacj Wadysawa okietka w 1320 roku. Dynastia Piastw wygasa po mierci jego syna, Kazimierza Wielkiego w 1370, ktry nie pozostawi legalnego nastpcy. Rzdy w Polsce przejli Andegawenowie (Ludwik Wgierski i Jadwiga), a nastpnie poprzez lub Jadwigi z wielkim ksiciem litewskim Jagie krlowie z dynastii Jagiellonw.\n----------------\n## **Rzeczpospolita Obojga Narodw i jej upadek (15691795)**\nW 1569 r. Korona Krlestwa Polskiego wesza w stay zwizek z Wielkim Ksistwem Litewskim. Na mocy unii zawartej w Lublinie powstaa Rzeczpospolita Obojga Narodw, ktr od 1573 r. rzdzili wadcy powoywani drog wolnej elekcji. Pastwo to byo jednym z najwikszych terytorialnie organizmw politycznych Europy. Po pokoju z Rosj zawartym w Polanowie w 1634 r. osigno powierzchni 990 tys. km. W tym okresie w Rzeczypospolitej wyksztaci si swoisty system polityczny, oparty na dominacji liczniejszej ni w innych krajach europejskich szlachty i systemie rzdw parlamentarnych. Zoty wiek pastwa przypad na okres rzdw ostatnich Jagiellonw. Ostatecznie zakoczy si on wraz z wojnami poowy XVII wieku. W kolejnym stuleciu pogrona w anarchii Rzeczpospolita zacza popada w siln zaleno od Rosji, a nastpnie znikna z mapy Europy w rezultacie trzech rozbiorw dokonanych przez Imperium Rosyjskie, Krlestwo Prus oraz Cesarstwo Austrii w latach 1772, 1793 i 1795.\n----------------\n## **Polska w XX i XXI wieku**\nSamodzielne pastwo polskie nie istniao a do XX wieku, cho okresowo pojawiay si jego szcztkowe formy, takie jak Ksistwo Warszawskie, Krlestwo Polskie czy Wielkie Ksistwo Poznaskie. Pene odrodzenie Polski nastpio dopiero po I wojnie wiatowej, kiedy w sytuacji upadku mocarstw rozbiorowych powstaa II Rzeczpospolita. Istniaa ona do 1939 r., czyli do pocztku II wojny wiatowej. We wrzeniu 1939 ziemie polskie zajte zostay przez III Rzesz i ZSRR. Dopiero od 1944 r. rozpoczo si ich stopniowe przejmowanie przez oddziay sowieckie i utworzonego u ich boku Ludowego Wojska Polskiego. Po zakoczeniu wojny Polska znalaza si za tzw. elazn kurtyn, a wadz w niej przejli komunici. W 1952 r. pastwo przemianowano na Polsk Rzeczpospolit Ludow. Do 1989 panowa w niej system partyjny, w ktrym przewodni rol penia Polska Zjednoczona Partia Robotnicza. Oprcz niej wystpoway jeszcze ugrupowania satelickie ZSL i SD. Upada ona ostatecznie w efekcie procesu okrelanego mianem Jesieni Narodw. Wybory parlamentarne w 1989 r. zapocztkoway procesy demokratyzacji i reform gospodarczych, ktre umoliwiy III Rzeczypospolitej wstpienie do NATO (1999), a nastpnie do Unii Europejskiej (2004).\n----------------\n## **Prehistoria Ziem Polskich**\nPierwsze lady obecnoci czowieka z gatunku Homo Neanderthalensis na ziemiach polskich datowane s na 200 tys. lat p.n.e. Przejcie z kultury paleolitycznej do neolitycznej nastpio na ziemiach polskich w midzy 8000 a 4500 r. p.n.e. Okres neolitu jest epok, w ktrej ostatecznie utrwalia si przewaga hodowli i rolnictwa nad zbieractwem i owiectwem. Lata 45002500 p.n.e. to pojawienie si z obszarw naddunajskich kultur ceramicznych wstgowej rytej i wstgowej kutej, drugi okres, trwajcy do 2000 r. p.n.e., to ceramiki malowane i pozbawione malowanej ornamentacji, ale przede wszystkim pojawia si wwczas kultura pucharw lejkowatych. W trzecim okresie (do 1800 r. p.n.e.) pojawiao si na ziemiach polskich kilka kultur kultura ceramiki wstgowej, kultura amfor kulistych oraz kultura ceramiki sznurowej, z ktr wie si pocztki hodowli konia. Pocztek epoki brzu na terenach dzisiejszej Polski datuje si na lata 1800700 p.n.e., a wie si j z kultur unietyck, obok ktrej istniay prymitywniejsze kultury iwieska i mierzanowicka. Okoo 1600 r. p.n.e. kultura unietycka przeksztacia si w pastersk kultur przeduyck, na ktr ok. 300 lat pniej naoya si wysoko rozwinita kultura uycka, z ktr wie si umiejtno wytopu elaza.\n----------------\n## **Formowanie si Pastwowoci (IXX w.)**\nOkoo IX w. na ziemiach polskich zaczy si tworzy silne organizmy polityczne. Do najwikszego znaczenia doszy dwa pastwo Wilan, wok Krakowa i pastwo Polan, wok Gniezna i Poznania. Pastwo Wilan znalazo si przypuszczalnie w drugiej poowie wieku pod panowaniem wielkomorawskim, a potem, midzy 936 a 945 rokiem, czeskim. Z panowaniem wielkomorawskim wiza mona wspominany w rdach chrzest ksicia Wilan. Okoo 930940 roku na pnocy wadcy Polan poczli prnie przycza okoliczne ziemie, do ok. 960 roku panowali ju nad ca Wielkopolsk. Pierwszy historyczny wadca z tej dynastii Mieszko I w 966 r. przyj chrzest.\n----------------\n## **Pastwo Pierwszych Piastw - Dzieje Polityczne (do 1138)**\nMieszko nigdy nie zosta krlem, do koca ycia by ksiciem. Pod koniec jego panowania pastwo obejmowao Wielkopolsk, Mazowsze, cz Pomorza z Gdaskiem, lsk i prawdopodobnie Maopolsk. Zarwno on, jak i jego nastpcy prowadzili walki z pastwami Cesarstwa Niemieckiego oraz Czechami i Rusi Kijowsk, a take z plemionami sowiaskimi osiadymi midzy Odr a ab. Najwikszy zasig terytorialny pastwo osigno za czasw Bolesawa I Chrobrego, by on synem pierwszego wadcy Polski. Chrobry zaj Milsko, uyce, Morawy, Sowacj (a przejciowo take Czechy) i przywrci Polsce Grody Czerwieskie. Bolesawowi Chrobremu udao si w 1000 roku ustanowi w Polsce niezalen metropoli kocieln, ze stolic w Gnienie, domniemany akt koronacyjny dokonany w tym roku przez Ottona III, potwierdzony zosta w 1025 roku sakr papiesk. W tym roku Chrobry zosta koronowany, wkrtce jednak zmar. Upadek pastwa pierwszych Piastw nastpi w 1031 za panowania syna Bolesawa Mieszka II, utracone zostay niemal wszystkie terytoria przyczone przez Bolesawa, a dynastia utracia insygnia koronacyjne. Najazd ksicia czeskiego Brzetysawa z 1038 roku i powstanie ludowe dopeniy dziea zniszczenia. Panowanie Kazimierza Odnowiciela rozpoczo okres odbudowy pastwa, zwieczony koronacj w 1076 r. jego syna Bolesawa miaego. Bolesaw koronacj zawdzicza wspieraniu papiea Grzegorza VII w jego sporze z cesarzem. Konflikt z biskupem Stanisawem ze Szczepanowa, a prawdopodobnie z szersz grup monowadcw doprowadzi do wygnania krla i signicia po wadz przez jego, ulegego cesarstwu, brata Wadysawa Hermana. Po dugiej rywalizacji midzy jego synami Zbigniewem i Bolesawem, rzdy obj ten ostatni, po swej mierci podzieli on pastwo midzy synw, nadajc najstarszemu tytu seniora. Rok 1138 przyjmuje si za pocztek rozbicia dzielnicowego.\n----------------\n## **Gospodarka i Spoeczestwo w Pastwie Pierwszych Piastw**\nPodstaw wadzy ksit polskich bya druyna ksica grupa wojw otaczajca ksicia i bdca na jego utrzymaniu. Prawdopodobnie o jej sile stanowili wojownicy normascy. Ksi i jego otoczenie czerpao dochody z wypraw wojennych, skd sprowadzano niewolnikw, oraz ze wiadcze ciganych z ludnoci wiejskiej. Orodkami wadzy byy grody. Po podboju wznoszono nowe grodziska na miejscu starych. Najwaniejszymi grodami, spord ok. 6080, byy Gniezno, Pozna, Krakw, Kruszwica, Ostrw Lednicki, Pock, Wrocaw, Opole, Gogw i Niemcza. Grody otoczone byy podgrodziami, w ktrych rozwijao si rzemioso i handel. W rejonie grodw rozlokowane byy osady zasiedlone ludnoci suebn. Ksi by wacicielem caej ziemi w kraju, cz praw mg odstpi w uytkowanie poszczeglnym osobom czy instytucjom. Prawo ksice (ius ducale) oddawao w rce wadcy szereg przywilejw, od monopoli na korzystanie z lasw czy kopalin (regale) po szereg powinnoci i usug wiadczonych przez grupy lub poszczeglne osoby. Ludno podzielona bya na szereg kategorii regulujcych charakter i wysoko wiadcze na rzecz wadcy. Po kryzysie monarchii z lat 30. XI wieku rozpad si system wojskowy oparty na druynie, a zacz ksztatowa si stan rycerski, ju nie utrzymywany przez ksicia, a nagradzany nadaniami. Z czasem uksztatowao si odrbne prawo rycerskie (ius militare) regulujce powinnoci i przywileje wojownikw. Na czele prowincji stali naczelnicy (principes terrae), a okrgiem grodowym zarzdza upan (comes), sprawowali wadz sdow, wojskow i skarbow. Tereny przygraniczne otrzymyway status marchii.\n----------------\n## **Kultura i ycie Religijne w Pastwie Pierwszych Piastw**\nPocztki kultury pisma w Polsce wie si z przyjciem chrzecijastwa. Pierwszym zabytkiem tego typu jest dokument Dagome iudex, ktrym Mieszko I oddawa swe pastwo w opiek Stolicy Piotrowej. Z obecnoci Brunona z Kwerfurtu zwizane s pierwsze dziea literackie Drugi ywot i Pasja w. Wojciecha oraz ywot Piciu Braci Mczennikw. W tym samym czasie powstaj take pierwsze roczniki spisywane na ziemiach polskich i dotyczce Polski, najbogatszy z nich to Rocznik kapitulny krakowski dawny. Bezporednio po chrzcie Mieszka I powstao w Poznaniu biskupstwo misyjne, na czele ktrego stan Jordan. Wraz z utworzeniem w 1000 roku metropolii gnienieskiej powstay stae sufraganie w Koobrzegu, Wrocawiu i Krakowie. Pozna zosta podporzdkowany Gnieznu dopiero ok. 1012 r., problemem byo take objcie jurysdykcj lska i Maopolski, ktre byy podporzdkowane"
+        }
+      }
+    ],
+    "Basic LLM Chain1": [
+      {
+        "json": {
+          "text": "## **Wprowadzenie do Historii Polski**\nSeria artykułów szczegółowych poświęconych historii Polski podzielona została na dwie części: hasła chronologiczne i monografie. Pierwsze podejmują kwestie historii politycznej Polski, w tym przede wszystkim polityki zewnętrznej i ważnych przemian wewnętrznych w kolejnych przedziałach czasowych. Monografie opisują natomiast poszczególne formy państwa polskiego od Polski pierwszych Piastów po III Rzeczpospolitą – jego społeczeństwo, władzę, ustrój, gospodarkę, wojskowość itd.\n----------------\n## **Początki państwa i dynastia Piastów (ok. 960–1370)**\nHistoria Polski – obejmuje dzieje państwa i narodu polskiego od X do XXI wieku. Dzieje Polski rozpoczynają się wraz z panowaniem pierwszego historycznego władcy, Mieszka I, który rządził od około 960 roku, a w 966 roku przyjął chrzest. Jednak wczesnopiastowskie państwo istniało już wówczas od co najmniej kilkudziesięciu lat, o czym świadczy budowa wielu grodów jeszcze przed panowaniem Mieszka. Syn Mieszka, Bolesław Chrobry, w 1025 roku został koronowany na pierwszego króla Polski. Do 1138 roku Polska jako monarchia patrymonialna rządzona była przez władców z dynastii Piastów, którzy nie licząc wydzielanych juniorom dzielnic i przejściowych okresów podziału, zachowywali zwierzchność nad całym jej terytorium. W efekcie tzw. ustawy sukcesyjnej księcia Bolesława Krzywoustego ziemie polskie uległy na 150 lat pogłębiającemu się rozbiciu dzielnicowemu. Próby ponownego zjednoczenia zaczęto podejmować pod koniec XIII w., a ostatecznie zostały one uwieńczone koronacją Władysława Łokietka w 1320 roku. Dynastia Piastów wygasła po śmierci jego syna, Kazimierza Wielkiego w 1370, który nie pozostawił legalnego następcy. Rządy w Polsce przejęli Andegawenowie (Ludwik Węgierski i Jadwiga), a następnie – poprzez ślub Jadwigi z wielkim księciem litewskim Jagiełłą – królowie z dynastii Jagiellonów.\n----------------\n## **Rzeczpospolita Obojga Narodów i jej upadek (1569–1795)**\nW 1569 r. Korona Królestwa Polskiego weszła w stały związek z Wielkim Księstwem Litewskim. Na mocy unii zawartej w Lublinie powstała Rzeczpospolita Obojga Narodów, którą od 1573 r. rządzili władcy powoływani drogą wolnej elekcji. Państwo to było jednym z największych terytorialnie organizmów politycznych Europy. Po pokoju z Rosją zawartym w Polanowie w 1634 r. osiągnęło powierzchnię 990 tys. km². W tym okresie w Rzeczypospolitej wykształcił się swoisty system polityczny, oparty na dominacji liczniejszej niż w innych krajach europejskich szlachty i systemie rządów parlamentarnych. Złoty wiek państwa przypadł na okres rządów ostatnich Jagiellonów. Ostatecznie zakończył się on wraz z wojnami połowy XVII wieku. W kolejnym stuleciu pogrążona w anarchii Rzeczpospolita zaczęła popadać w silną zależność od Rosji, a następnie zniknęła z mapy Europy w rezultacie trzech rozbiorów dokonanych przez Imperium Rosyjskie, Królestwo Prus oraz Cesarstwo Austrii w latach: 1772, 1793 i 1795.\n----------------\n## **Polska w XX i XXI wieku**\nSamodzielne państwo polskie nie istniało aż do XX wieku, choć okresowo pojawiały się jego szczątkowe formy, takie jak Księstwo Warszawskie, Królestwo Polskie czy Wielkie Księstwo Poznańskie. Pełne odrodzenie Polski nastąpiło dopiero po I wojnie światowej, kiedy w sytuacji upadku mocarstw rozbiorowych powstała II Rzeczpospolita. Istniała ona do 1939 r., czyli do początku II wojny światowej. We wrześniu 1939 ziemie polskie zajęte zostały przez III Rzeszę i ZSRR. Dopiero od 1944 r. rozpoczęło się ich stopniowe przejmowanie przez oddziały sowieckie i utworzonego u ich boku Ludowego Wojska Polskiego. Po zakończeniu wojny Polska znalazła się za tzw. żelazną kurtyną, a władzę w niej przejęli komuniści. W 1952 r. państwo przemianowano na Polską Rzeczpospolitą Ludową. Do 1989 panował w niej system partyjny, w którym przewodnią rolę pełniła Polska Zjednoczona Partia Robotnicza. Oprócz niej występowały jeszcze ugrupowania satelickie – ZSL i SD. Upadła ona ostatecznie w efekcie procesu określanego mianem Jesieni Narodów. Wybory parlamentarne w 1989 r. zapoczątkowały procesy demokratyzacji i reform gospodarczych, które umożliwiły III Rzeczypospolitej wstąpienie do NATO (1999), a następnie do Unii Europejskiej (2004).\n----------------\n## **Prehistoria Ziem Polskich**\nPierwsze ślady obecności człowieka z gatunku Homo Neanderthalensis na ziemiach polskich datowane są na 200 tys. lat p.n.e. Przejście z kultury paleolitycznej do neolitycznej nastąpiło na ziemiach polskich w między 8000 a 4500 r. p.n.e. Okres neolitu jest epoką, w której ostatecznie utrwaliła się przewaga hodowli i rolnictwa nad zbieractwem i łowiectwem. Lata 4500–2500 p.n.e. to pojawienie się z obszarów naddunajskich kultur ceramicznych – wstęgowej rytej i wstęgowej kłutej, drugi okres, trwający do 2000 r. p.n.e., to ceramiki malowane i pozbawione malowanej ornamentacji, ale przede wszystkim pojawiła się wówczas kultura pucharów lejkowatych. W trzecim okresie (do 1800 r. p.n.e.) pojawiało się na ziemiach polskich kilka kultur: kultura ceramiki wstęgowej, kultura amfor kulistych oraz kultura ceramiki sznurowej, z którą wiąże się początki hodowli konia. Początek epoki brązu na terenach dzisiejszej Polski datuje się na lata 1800–700 p.n.e., a wiąże się ją z kulturą unietycką, obok której istniały prymitywniejsze kultury iwieńska i mierzanowicka. Około 1600 r. p.n.e. kultura unietycka przekształciła się w pasterską kulturę przedłużycką, na którą ok. 300 lat później nałożyła się wysoko rozwinięta kultura łużycka, z którą wiąże się umiejętność wytopu żelaza.\n----------------\n## **Formowanie się Państwowości (IX–X w.)**\nOkoło IX w. na ziemiach polskich zaczęły się tworzyć silne organizmy polityczne. Do największego znaczenia doszły dwa – państwo Wiślan, wokół Krakowa i państwo Polan, wokół Gniezna i Poznania. Państwo Wiślan znalazło się przypuszczalnie w drugiej połowie wieku pod panowaniem wielkomorawskim, a potem, między 936 a 945 rokiem, czeskim. Z panowaniem wielkomorawskim wiązać można wspominany w źródłach chrzest księcia Wiślan. Około 930–940 roku na północy władcy Polan poczęli prężnie przyłączać okoliczne ziemie, do ok. 960 roku panowali już nad całą Wielkopolską. Pierwszy historyczny władca z tej dynastii Mieszko I w 966 r. przyjął chrzest.\n----------------\n## **Państwo Pierwszych Piastów - Dzieje Polityczne (do 1138)**\nMieszko nigdy nie został królem, do końca życia był księciem. Pod koniec jego panowania państwo obejmowało Wielkopolskę, Mazowsze, część Pomorza z Gdańskiem, Śląsk i prawdopodobnie Małopolskę. Zarówno on, jak i jego następcy prowadzili walki z państwami Cesarstwa Niemieckiego oraz Czechami i Rusią Kijowską, a także z plemionami słowiańskimi osiadłymi między Odrą a Łabą. Największy zasięg terytorialny państwo osiągnęło za czasów Bolesława I Chrobrego, był on synem pierwszego władcy Polski. Chrobry zajął Milsko, Łużyce, Morawy, Słowację (a przejściowo także Czechy) i przywrócił Polsce Grody Czerwieńskie. Bolesławowi Chrobremu udało się w 1000 roku ustanowić w Polsce niezależną metropolię kościelną, ze stolicą w Gnieźnie, domniemany akt koronacyjny dokonany w tym roku przez Ottona III, potwierdzony został w 1025 roku sakrą papieską. W tym roku Chrobry został koronowany, wkrótce jednak zmarł. Upadek państwa pierwszych Piastów nastąpił w 1031 za panowania syna Bolesława Mieszka II, utracone zostały niemal wszystkie terytoria przyłączone przez Bolesława, a dynastia utraciła insygnia koronacyjne. Najazd księcia czeskiego Brzetysława z 1038 roku i powstanie ludowe dopełniły dzieła zniszczenia. Panowanie Kazimierza Odnowiciela rozpoczęło okres odbudowy państwa, zwieńczony koronacją w 1076 r. jego syna Bolesława Śmiałego. Bolesław koronację zawdzięczał wspieraniu papieża Grzegorza VII w jego sporze z cesarzem. Konflikt z biskupem Stanisławem ze Szczepanowa, a prawdopodobnie z szerszą grupą możnowładców doprowadził do wygnania króla i sięgnięcia po władzę przez jego, uległego cesarstwu, brata Władysława Hermana. Po długiej rywalizacji między jego synami Zbigniewem i Bolesławem, rządy objął ten ostatni, po swej śmierci podzielił on państwo między synów, nadając najstarszemu tytuł seniora. Rok 1138 przyjmuje się za początek rozbicia dzielnicowego.\n----------------\n## **Gospodarka i Społeczeństwo w Państwie Pierwszych Piastów**\nPodstawą władzy książąt polskich była drużyna książęca – grupa wojów otaczająca księcia i będąca na jego utrzymaniu. Prawdopodobnie o jej sile stanowili wojownicy normańscy. Książę i jego otoczenie czerpało dochody z wypraw wojennych, skąd sprowadzano niewolników, oraz ze świadczeń ściąganych z ludności wiejskiej. Ośrodkami władzy były grody. Po podboju wznoszono nowe grodziska na miejscu starych. Najważniejszymi grodami, spośród ok. 60–80, były Gniezno, Poznań, Kraków, Kruszwica, Ostrów Lednicki, Płock, Wrocław, Opole, Głogów i Niemcza. Grody otoczone były podgrodziami, w których rozwijało się rzemiosło i handel. W rejonie grodów rozlokowane były osady zasiedlone ludnością służebną. Książę był właścicielem całej ziemi w kraju, część praw mógł odstąpić w użytkowanie poszczególnym osobom czy instytucjom. Prawo książęce (ius ducale) oddawało w ręce władcy szereg przywilejów, od monopoli na korzystanie z lasów czy kopalin (regale) po szereg powinności i usług świadczonych przez grupy lub poszczególne osoby. Ludność podzielona była na szereg kategorii regulujących charakter i wysokość świadczeń na rzecz władcy. Po kryzysie monarchii z lat 30. XI wieku rozpadł się system wojskowy oparty na drużynie, a zaczął kształtować się stan rycerski, już nie utrzymywany przez księcia, a nagradzany nadaniami. Z czasem ukształtowało się odrębne prawo rycerskie (ius militare) regulujące powinności i przywileje wojowników. Na czele prowincji stali naczelnicy (principes terrae), a okręgiem grodowym zarządzał żupan (comes), sprawowali władzę sądową, wojskową i skarbową. Tereny przygraniczne otrzymywały status marchii.\n----------------\n## **Kultura i Życie Religijne w Państwie Pierwszych Piastów**\nPoczątki kultury pisma w Polsce wiąże się z przyjęciem chrześcijaństwa. Pierwszym zabytkiem tego typu jest dokument Dagome iudex, którym Mieszko I oddawał swe państwo w opiekę Stolicy Piotrowej. Z obecnością Brunona z Kwerfurtu związane są pierwsze dzieła literackie: Drugi żywot i Pasja św. Wojciecha oraz Żywot Pięciu Braci Męczenników. W tym samym czasie powstają także pierwsze roczniki spisywane na ziemiach polskich i dotyczące Polski, najbogatszy z nich to Rocznik kapitulny krakowski dawny. Bezpośrednio po chrzcie Mieszka I powstało w Poznaniu biskupstwo misyjne, na czele którego stanął Jordan. Wraz z utworzeniem w 1000 roku metropolii gnieźnieńskiej powstały stałe sufraganie w Kołobrzegu, Wrocławiu i Krakowie. Poznań został podporządkowany Gnieznu dopiero ok. 1012 r., problemem było także objęcie jurysdykcją Śląska i Małopolski, które były podporządkowane"
+        }
+      }
+    ],
+    "On form submission": [
+      {
+        "json": {
+          "FILE": {
+            "filename": "Historia Polski – Wikipedia, wolna encyklopedia.pdf",
+            "mimetype": "application/pdf",
+            "size": 409284
+          },
+          "submittedAt": "2025-09-16T12:36:39.295+02:00",
+          "formMode": "test"
+        },
+        "binary": {
+          "FILE": {
+            "mimeType": "application/pdf",
+            "fileType": "pdf",
+            "fileExtension": "pdf",
+            "data": "filesystem-v2",
+            "fileName": "Historia Polski – Wikipedia, wolna encyklopedia.pdf",
+            "id": "filesystem-v2:workflows/dOzG9hEIfo7ItJmx/executions/temp/binary_data/e7e5da59-04fc-4c0b-b14d-c0bc485886e0",
+            "fileSize": "409 kB"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "AWS Lambda": {
+      "main": [
+        []
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "AWS Lambda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "CLEAR MARKDOWN TEXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CLEAR MARKDOWN TEXT": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a3b4bb59-bb49-4999-9a92-64f048609bd1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b16d98c47200c2686a4b29ecfa84815bd9725f037a0a4b2c8514bd0f198fab9"
+  },
+  "id": "dOzG9hEIfo7ItJmx",
+  "tags": []
+}
