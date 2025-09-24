@@ -7,12 +7,12 @@ This repository provides an automated workflow to upload .docx files to AWS S3, 
 ![Workflow](./docs/workflow_screen.png)
 
 ## Features
-File Upload via Form – Users can upload .docx files through a simple web form.
-S3 Storage – Files are securely stored in an AWS S3 bucket.
-Lambda Parsing – AWS Lambda extracts and parses text from .docx.
-Text Cleaning – Removes references, redundant whitespace, and unwanted symbols while preserving formatting.
-AI-Ready Output – Produces lightweight, clean text optimized for tokenization.
-Manual Trigger Support – Useful for testing the workflow without the form.
+- File Upload via Form – Users can upload .docx files through a simple web form.
+- S3 Storage – Files are securely stored in an AWS S3 bucket.
+- Lambda Parsing – AWS Lambda extracts and parses text from .docx.
+- Text Cleaning – Removes references, redundant whitespace, and unwanted symbols while preserving formatting.
+- AI-Ready Output – Produces lightweight, clean text optimized for tokenization.
+- Manual Trigger Support – Useful for testing the workflow without the form.
 
 ## Workflow Overview
 
