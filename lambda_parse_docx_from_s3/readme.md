@@ -2,6 +2,10 @@
 
 This repository provides an automated workflow to upload .docx files to AWS S3, process them via an AWS Lambda function, and return clean, structured text ready for use in downstream applications (e.g., AI agents, NLP pipelines, or databases). The workflow is implemented with n8n and leverages AWS services for scalability and reliability.
 
+## Workflow Screenshot
+
+![Workflow](./docs/workflow_screen.png)
+
 ## Features
 File Upload via Form – Users can upload .docx files through a simple web form.
 S3 Storage – Files are securely stored in an AWS S3 bucket.
