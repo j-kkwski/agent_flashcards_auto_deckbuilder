@@ -1,0 +1,342 @@
+{
+  "name": "Parse_docx_lambda",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "={{$vars.DECKBUILDER_S3_DOCX_BUCKET}}",
+        "fileName": "={{ $json['File Please'].filename }}",
+        "binaryPropertyName": "={{Object.keys($binary)}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        704,
+        864
+      ],
+      "id": "2f56b81e-4313-4f4a-b6ef-5a2e040bc584",
+      "name": "Upload a file to S3 Bucket",
+      "credentials": {
+        "aws": {
+          "id": "k295IQu4EuLsFqqg",
+          "name": "AWS_S3_DECK_GETTER"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function cleanTextPreserveNewlines(input) {\n    // Step 1: Remove references like [number]\n    let text = input.replace(/\\[\\d+\\]/g, '');\n\n    // Step 2: Remove unwanted symbols but preserve newlines\n    // Allow Unicode letters (\\p{L}), numbers (\\p{N}), whitespace (\\s), punctuation, and \\n\n    text = text.replace(/[^\\p{L}\\p{N}\\s.,!?'\\n#*()-]/gu, '');\n\n    // Step 3: Collapse multiple spaces (but not newlines)\n    text = text.replace(/[ \\t]+/g, ' ');\n\n    // Step 4: Reduce repeated punctuation\n    text = text.replace(/([.!?])\\1+/g, '$1'); // !!! or ??? → ! or ?\n    text = text.replace(/(\\.{2,})/g, '.');   // ... → .\n\n    // Step 5: Remove standalone numbers at line edges\n    text = text.replace(/\\n\\d+\\b/g, '\\n');\n    text = text.replace(/^\\d+\\b/gm, '');\n\n    // Step 6: Trim spaces at the start/end of each line\n    text = text.split('\\n').map(line => line.trim()).join('\\n');\n\n    return text;\n}\n\nlet {file_key: filename, text: text} = JSON.parse($input.first().json.result.body)\nreturn {filename: filename, text: cleanTextPreserveNewlines(text)};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        960
+      ],
+      "id": "7e5e3b77-485d-4668-bff4-b96611b34f9a",
+      "name": "Prepare text for AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        16,
+        1056
+      ],
+      "id": "48853ab5-8dd1-4263-b0f4-4c8af18bebe0",
+      "name": "Manuall Trigger for Testing"
+    },
+    {
+      "parameters": {
+        "content": "## Prepare text for AI Agent (Streamline input for token reduction)",
+        "height": 512,
+        "width": 256,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        976,
+        752
+      ],
+      "typeVersion": 1,
+      "id": "86b3e9c0-2bb9-433b-8acb-22ec02d722f0",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Triggers",
+        "height": 512,
+        "width": 320,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -80,
+        752
+      ],
+      "typeVersion": 1,
+      "id": "f3f736ec-fb03-40a5-9a84-0ef9288cc0a1",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## EXAMPLE OUTPUT \n\n\n{\n\"filename\": \n\"Historia Polski.docx\",\n\"text\": \n\"Historia Polski obejmuje dzieje państwa i narodu polskiego od X do XXI wieku. Dzieje Polski rozpoczynają się wraz z panowaniem pierwszego historycznego władcy, Mieszka I, który rządził od około 960 roku, a w 966 roku przyjął chrzest. Jednak wczesnopiastowskie państwo istniało już wówczas od co najmniej kilkudziesięciu lat, o czym świadczy budowa wielu grodów jeszcze przed panowaniem Mieszka . Syn Mieszka, Bolesław Chrobry, w 1025 roku został koronowany na pierwszego króla Polski. Do 1138 roku Polska jako monarchia patrymonialna rządzona była przez władców z dynastii Piastów, którzy nie licząc wydzielanych juniorom dzielnic i przejściowych okresów podziału, zachowywali zwierzchność nad całym jej terytorium. W efekcie tzw. ustawy sukcesyjnej księcia Bolesława Krzywoustego ziemie polskie uległy na 150 lat pogłębiającemu się rozbiciu dzielnicowemu. Próby ponownego zjednoczenia zaczęto podejmować pod koniec XIII w., a ostatecznie zostały one uwieńczone koronacją Władysława Łokietka w 1320 roku. Dynastia Piastów wygasła po śmierci jego syna, Kazimierza Wielkiego w 1370, który nie pozostawił legalnego następcy. Rządy w Polsce przejęli Andegawenowie (Ludwik Węgierski i Jadwiga), a następnie poprzez ślub Jadwigi z wielkim księciem litewskim Jagiełłą królowie z dynastii Jagiellonów. W 1569 r. Korona Królestwa Polskiego weszła w stały związek z Wielkim Księstwem Litewskim. Na mocy unii zawartej w Lublinie powstała Rzeczpospolita Obojga Narodów, którą od 1573 r. rządzili władcy powoływani drogą wolnej elekcji. Państwo to było jednym z największych terytorialnie organizmów politycznych Europy. Po pokoju z Rosją zawartym w Polanowie w 1634 r. osiągnęło powierzchnię 990 tys. km². W tym okresie w Rzeczypospolitej wykształcił się swoisty system polityczny, oparty na dominacji liczniejszej niż w innych krajach europejskich szlachty i systemie rządów parlamentarnych. Złoty wiek państwa przypadł na okres rządów ostatnich Jagiellonów. Ostatecznie zakończył się on wraz z wojnami połowy XVII wieku. W kolejnym stuleciu pogrążona w anarchii Rzeczpospolita zaczęła popadać w silną zależność od Rosji, a następnie zniknęła z mapy Europy w rezultacie trzech rozbiorów dokonanych przez Imperium Rosyjskie, Królestwo Prus oraz Cesarstwo Austrii w latach 1772, 1793 i 1795 . Samodzielne państwo polskie nie istniało aż do XX wieku, choć okresowo pojawiały się jego szczątkowe formy, takie jak Księstwo Warszawskie, Królestwo Polskie czy Wielkie Księstwo Poznańskie. Pełne odrodzenie Polski nastąpiło dopiero po I wojnie światowej, kiedy w sytuacji upadku mocarstw rozbiorowych powstała II Rzeczpospolita. Istniała ona do 1939 r., czyli do początku II wojny światowej. We wrześniu 1939 ziemie polskie zajęte zostały przez III Rzeszę i ZSRR. Dopiero od 1944 r. rozpoczęło się ich stopniowe przejmowanie przez oddziały sowieckie i utworzonego u ich boku Ludowego Wojska Polskiego.\"\n}",
+        "height": 832,
+        "width": 672,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1328,
+        576
+      ],
+      "typeVersion": 1,
+      "id": "e051ee01-450c-4ee4-82d5-4f971b25b0bf",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "## Upload .docx to S3 and process using Lambda",
+        "height": 512,
+        "width": 400,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        576,
+        752
+      ],
+      "typeVersion": 1,
+      "id": "9641786f-91ae-4fbf-bd45-019cb0031c8e",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## Split out in case of mulitple binary files",
+        "height": 512,
+        "width": 256,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        240,
+        752
+      ],
+      "typeVersion": 1,
+      "id": "0aae47ed-9e35-4d98-a966-585484bb29db",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "$binary",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        320,
+        960
+      ],
+      "id": "25ce5548-0fd7-4542-99da-f6e6650ed120",
+      "name": "Handle multiple files1"
+    },
+    {
+      "parameters": {
+        "formTitle": "File Please",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "File Please",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "acceptFileTypes": ".docx",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        864
+      ],
+      "id": "31320758-faa4-45f6-82e2-325bde03bbbb",
+      "name": "Upload .docx using form submission",
+      "webhookId": "94ee5e04-3645-45e8-8ce1-ff2f07ffb022"
+    },
+    {
+      "parameters": {
+        "function": "={{$vars.DECKBUILDER_LAMBDA_DOCX_PARSE}}",
+        "payload": "=    {\"s3_key\": \"{{ $json.Key }}\"}"
+      },
+      "type": "n8n-nodes-base.awsLambda",
+      "typeVersion": 1,
+      "position": [
+        704,
+        1072
+      ],
+      "id": "0ae0ad9d-d7f3-42bc-9e52-5410de3d924d",
+      "name": "Parse uploaded docx using lambda function",
+      "credentials": {
+        "aws": {
+          "id": "M2lnO3zQ0LBdtVFA",
+          "name": "AWS_LAMBDA_INVOKER"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Upload .docx using form submission": [
+      {
+        "json": {
+          "File Please": {
+            "filename": "Historia Polski.docx",
+            "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "size": 15064
+          },
+          "submittedAt": "2025-09-24T11:03:48.052+02:00",
+          "formMode": "test"
+        },
+        "binary": {
+          "File_Please": {
+            "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "fileExtension": "docx",
+            "data": "filesystem-v2",
+            "fileName": "Historia Polski.docx",
+            "id": "filesystem-v2:workflows/ezICyR4XRlGV5soj/executions/temp/binary_data/87c1ba44-19e7-47a4-b8e3-fb9c072ec288",
+            "fileSize": "15.1 kB"
+          }
+        }
+      }
+    ],
+    "Handle multiple files1": [
+      {
+        "json": {
+          "File Please": {
+            "filename": "Historia Polski.docx",
+            "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "size": 15064
+          },
+          "submittedAt": "2025-09-24T11:03:48.052+02:00",
+          "formMode": "test"
+        },
+        "binary": {
+          "File_Please": {
+            "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "fileExtension": "docx",
+            "data": "filesystem-v2",
+            "fileName": "Historia Polski.docx",
+            "id": "filesystem-v2:workflows/ezICyR4XRlGV5soj/executions/temp/binary_data/87c1ba44-19e7-47a4-b8e3-fb9c072ec288",
+            "fileSize": "15.1 kB"
+          }
+        }
+      }
+    ],
+    "Parse uploaded docx using lambda function": [
+      {
+        "json": {
+          "result": {
+            "statusCode": 200,
+            "body": "{\"file_key\": \"Historia Polski.docx\", \"text\": \"Historia Polski \\u2013 obejmuje dzieje pa\\u0144stwa i narodu polskiego od X do XXI wieku. Dzieje Polski rozpoczynaj\\u0105 si\\u0119 wraz z panowaniem pierwszego historycznego w\\u0142adcy, Mieszka I, kt\\u00f3ry rz\\u0105dzi\\u0142 od oko\\u0142o 960 roku, a w 966 roku przyj\\u0105\\u0142 chrzest. Jednak wczesnopiastowskie pa\\u0144stwo istnia\\u0142o ju\\u017c w\\u00f3wczas od co najmniej kilkudziesi\\u0119ciu lat, o czym \\u015bwiadczy budowa wielu grod\\u00f3w jeszcze przed panowaniem Mieszka[1][2][3][4] . Syn Mieszka, Boles\\u0142aw Chrobry, w 1025 roku zosta\\u0142 koronowany na pierwszego kr\\u00f3la Polski. Do 1138 roku Polska jako monarchia patrymonialna rz\\u0105dzona by\\u0142a przez w\\u0142adc\\u00f3w z dynastii Piast\\u00f3w, kt\\u00f3rzy nie licz\\u0105c wydzielanych juniorom dzielnic i przej\\u015bciowych okres\\u00f3w podzia\\u0142u, zachowywali zwierzchno\\u015b\\u0107 nad ca\\u0142ym jej terytorium. W efekcie tzw. ustawy sukcesyjnej ksi\\u0119cia Boles\\u0142awa Krzywoustego ziemie polskie uleg\\u0142y na 150 lat pog\\u0142\\u0119biaj\\u0105cemu si\\u0119 rozbiciu dzielnicowemu. Pr\\u00f3by ponownego zjednoczenia zacz\\u0119to podejmowa\\u0107 pod koniec XIII w., a ostatecznie zosta\\u0142y one uwie\\u0144czone koronacj\\u0105 W\\u0142adys\\u0142awa \\u0141okietka w 1320 roku. Dynastia Piast\\u00f3w wygas\\u0142a po \\u015bmierci jego syna, Kazimierza Wielkiego w 1370, kt\\u00f3ry nie pozostawi\\u0142 legalnego nast\\u0119pcy. Rz\\u0105dy w Polsce przej\\u0119li Andegawenowie (Ludwik W\\u0119gierski i Jadwiga), a nast\\u0119pnie \\u2013 poprzez \\u015blub Jadwigi z wielkim ksi\\u0119ciem litewskim Jagie\\u0142\\u0142\\u0105 \\u2013 kr\\u00f3lowie z dynastii Jagiellon\\u00f3w. W 1569 r. Korona Kr\\u00f3lestwa Polskiego wesz\\u0142a w sta\\u0142y zwi\\u0105zek z Wielkim Ksi\\u0119stwem Litewskim. Na mocy unii zawartej w Lublinie powsta\\u0142a Rzeczpospolita Obojga Narod\\u00f3w, kt\\u00f3r\\u0105 od 1573 r. rz\\u0105dzili w\\u0142adcy powo\\u0142ywani drog\\u0105 wolnej elekcji. Pa\\u0144stwo to by\\u0142o jednym z najwi\\u0119kszych terytorialnie organizm\\u00f3w politycznych Europy. Po pokoju z Rosj\\u0105 zawartym w Polanowie w 1634 r. osi\\u0105gn\\u0119\\u0142o powierzchni\\u0119 990 tys. km\\u00b2. W tym okresie w Rzeczypospolitej wykszta\\u0142ci\\u0142 si\\u0119 swoisty system polityczny, oparty na dominacji liczniejszej ni\\u017c w innych krajach europejskich szlachty i systemie rz\\u0105d\\u00f3w parlamentarnych. Z\\u0142oty wiek pa\\u0144stwa przypad\\u0142 na okres rz\\u0105d\\u00f3w ostatnich Jagiellon\\u00f3w. Ostatecznie zako\\u0144czy\\u0142 si\\u0119 on wraz z wojnami po\\u0142owy XVII wieku. W kolejnym stuleciu pogr\\u0105\\u017cona w anarchii Rzeczpospolita zacz\\u0119\\u0142a popada\\u0107 w siln\\u0105 zale\\u017cno\\u015b\\u0107 od Rosji, a nast\\u0119pnie znikn\\u0119\\u0142a z mapy Europy w rezultacie trzech rozbior\\u00f3w dokonanych przez Imperium Rosyjskie, Kr\\u00f3lestwo Prus oraz Cesarstwo Austrii w latach: 1772, 1793 i 1795[5][6][7][8] . Samodzielne pa\\u0144stwo polskie nie istnia\\u0142o a\\u017c do XX wieku, cho\\u0107 okresowo pojawia\\u0142y si\\u0119 jego szcz\\u0105tkowe formy, takie jak Ksi\\u0119stwo Warszawskie, Kr\\u00f3lestwo Polskie czy Wielkie Ksi\\u0119stwo Pozna\\u0144skie. Pe\\u0142ne odrodzenie Polski nast\\u0105pi\\u0142o dopiero po I wojnie \\u015bwiatowej, kiedy w sytuacji upadku mocarstw rozbiorowych powsta\\u0142a II Rzeczpospolita. Istnia\\u0142a ona do 1939 r., czyli do pocz\\u0105tku II wojny \\u015bwiatowej. We wrze\\u015bniu 1939 ziemie polskie zaj\\u0119te zosta\\u0142y przez III Rzesz\\u0119 i ZSRR. Dopiero od 1944 r. rozpocz\\u0119\\u0142o si\\u0119 ich stopniowe przejmowanie przez oddzia\\u0142y sowieckie i utworzonego u ich boku Ludowego Wojska Polskiego.\"}"
+          }
+        }
+      }
+    ],
+    "Upload a file to S3 Bucket": [
+      {
+        "json": {
+          "$": {
+            "xmlns": "http://s3.amazonaws.com/doc/2006-03-01/"
+          },
+          "Location": "https://n8n-ankideckbuilder-docx-bucket.s3.eu-north-1.amazonaws.com/Historia+Polski.docx",
+          "Bucket": "n8n-ankideckbuilder-docx-bucket",
+          "Key": "Historia Polski.docx",
+          "ETag": "\"ac61d6e4ccd7e9635ae012c6491c7558-1\"",
+          "ChecksumCRC64NVME": "EVW72l8VFao=",
+          "ChecksumType": "FULL_OBJECT"
+        }
+      }
+    ],
+    "Prepare text for AI Agent": [
+      {
+        "json": {
+          "filename": "Historia Polski.docx",
+          "text": "Historia Polski obejmuje dzieje państwa i narodu polskiego od X do XXI wieku. Dzieje Polski rozpoczynają się wraz z panowaniem pierwszego historycznego władcy, Mieszka I, który rządził od około 960 roku, a w 966 roku przyjął chrzest. Jednak wczesnopiastowskie państwo istniało już wówczas od co najmniej kilkudziesięciu lat, o czym świadczy budowa wielu grodów jeszcze przed panowaniem Mieszka . Syn Mieszka, Bolesław Chrobry, w 1025 roku został koronowany na pierwszego króla Polski. Do 1138 roku Polska jako monarchia patrymonialna rządzona była przez władców z dynastii Piastów, którzy nie licząc wydzielanych juniorom dzielnic i przejściowych okresów podziału, zachowywali zwierzchność nad całym jej terytorium. W efekcie tzw. ustawy sukcesyjnej księcia Bolesława Krzywoustego ziemie polskie uległy na 150 lat pogłębiającemu się rozbiciu dzielnicowemu. Próby ponownego zjednoczenia zaczęto podejmować pod koniec XIII w., a ostatecznie zostały one uwieńczone koronacją Władysława Łokietka w 1320 roku. Dynastia Piastów wygasła po śmierci jego syna, Kazimierza Wielkiego w 1370, który nie pozostawił legalnego następcy. Rządy w Polsce przejęli Andegawenowie (Ludwik Węgierski i Jadwiga), a następnie poprzez ślub Jadwigi z wielkim księciem litewskim Jagiełłą królowie z dynastii Jagiellonów. W 1569 r. Korona Królestwa Polskiego weszła w stały związek z Wielkim Księstwem Litewskim. Na mocy unii zawartej w Lublinie powstała Rzeczpospolita Obojga Narodów, którą od 1573 r. rządzili władcy powoływani drogą wolnej elekcji. Państwo to było jednym z największych terytorialnie organizmów politycznych Europy. Po pokoju z Rosją zawartym w Polanowie w 1634 r. osiągnęło powierzchnię 990 tys. km². W tym okresie w Rzeczypospolitej wykształcił się swoisty system polityczny, oparty na dominacji liczniejszej niż w innych krajach europejskich szlachty i systemie rządów parlamentarnych. Złoty wiek państwa przypadł na okres rządów ostatnich Jagiellonów. Ostatecznie zakończył się on wraz z wojnami połowy XVII wieku. W kolejnym stuleciu pogrążona w anarchii Rzeczpospolita zaczęła popadać w silną zależność od Rosji, a następnie zniknęła z mapy Europy w rezultacie trzech rozbiorów dokonanych przez Imperium Rosyjskie, Królestwo Prus oraz Cesarstwo Austrii w latach 1772, 1793 i 1795 . Samodzielne państwo polskie nie istniało aż do XX wieku, choć okresowo pojawiały się jego szczątkowe formy, takie jak Księstwo Warszawskie, Królestwo Polskie czy Wielkie Księstwo Poznańskie. Pełne odrodzenie Polski nastąpiło dopiero po I wojnie światowej, kiedy w sytuacji upadku mocarstw rozbiorowych powstała II Rzeczpospolita. Istniała ona do 1939 r., czyli do początku II wojny światowej. We wrześniu 1939 ziemie polskie zajęte zostały przez III Rzeszę i ZSRR. Dopiero od 1944 r. rozpoczęło się ich stopniowe przejmowanie przez oddziały sowieckie i utworzonego u ich boku Ludowego Wojska Polskiego."
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Upload a file to S3 Bucket": {
+      "main": [
+        [
+          {
+            "node": "Parse uploaded docx using lambda function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manuall Trigger for Testing": {
+      "main": [
+        [
+          {
+            "node": "Parse uploaded docx using lambda function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle multiple files1": {
+      "main": [
+        [
+          {
+            "node": "Upload a file to S3 Bucket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload .docx using form submission": {
+      "main": [
+        [
+          {
+            "node": "Handle multiple files1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse uploaded docx using lambda function": {
+      "main": [
+        [
+          {
+            "node": "Prepare text for AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "818bed3a-1acf-410b-bf06-80c68ceeed3e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b16d98c47200c2686a4b29ecfa84815bd9725f037a0a4b2c8514bd0f198fab9"
+  },
+  "id": "ezICyR4XRlGV5soj",
+  "tags": []
+}
