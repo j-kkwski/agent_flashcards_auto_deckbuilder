@@ -26,3 +26,13 @@ flowchart TD
     C --> D[Invoke Lambda Function]
     D --> E[Prepare Text for AI Agent]
     F[Manual Trigger for Testing] --> D
+
+
+## Workflow Overview
+
+```mermaid
+flowchart TD
+    A[Upload DOCX] --> B[S3 Storage]
+    B --> C[Lambda Parser]
+    C --> D[Text Cleaner]
+    D --> E[AI Agent Ready]
